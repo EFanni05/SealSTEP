@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">SealSTEP</string>
+    <string name="remaning">remaining</string>
+    <string name="Feed">Feed me!</string>
+    <string name="language">Language:</string>
+    <string name="version">version: 1.0-beta</string>
+    <string name="myName">Elekes Fanni</string>
+    <string name="creadit">Credits:</string>
+    <string name="settings">Settings</string>
+    <string name="EN">English</string>
+    <string name="HU">Hungarian</string>
+    <string name="ENemoji">🇭🇺</string>
+    <string name="HUemoji">🇬🇧</string>
+    <string name="haveFish">You have %d fish</string>
+    <string name="nofish">You don\'t have fish</string>
+    <string name="music">K.K. Slider</string>
+    <string name="sleeping">I\'m sleeeeeping</string>
+</resources>

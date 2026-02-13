@@ -1,0 +1,13 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.SealStep" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your light theme here. -->
+        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <item name="fontFamily">@font/cherrybombone</item>
+        <item name="android:fontFamily">@font/cherrybombone</item>
+        <item name="android:textColor">@color/darkblue</item>
+        <item name="colorOutline">@color/darkblue</item>
+    </style>
+
+    <style name="Theme.SealStep" parent="Base.Theme.SealStep" />
+</resources>
