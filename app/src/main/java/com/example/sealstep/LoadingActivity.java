@@ -3,37 +3,38 @@ package com.example.sealstep;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
 import android.icu.util.Calendar;
 import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.VideoView;
+import android.widget.ImageView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.OptIn;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
+
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.gif.GifDrawable;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
-import androidx.media3.common.MediaItem;
-import androidx.media3.common.Player;
 import androidx.media3.common.util.UnstableApi;
-import androidx.media3.exoplayer.ExoPlayer;
-import androidx.media3.ui.PlayerView;
-import androidx.media3.common.Player;
 
 public class LoadingActivity extends AppCompatActivity {
 
     private static final int LOCATION_PERMISSION_CODE = 1001;
     private FusedLocationProviderClient fusedLocationClient;
-    private ExoPlayer player;
-    private PlayerView playerView;
+
+    ImageView gif;
     MediaPlayer sound;
     Current c = new Current();
     int time = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
@@ -45,10 +46,32 @@ public class LoadingActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_loading);
-        init();
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
         Log.d("LOADING", "LoadingActivity created");
-        setContentView(R.layout.activity_loading);
+        init();
+        //gif
+        Glide.with(this)
+                .asGif()
+                .load(R.drawable.loading)
+                .into(new CustomTarget<GifDrawable>() {
+                    @Override
+                    public void onResourceReady(GifDrawable resource,
+                                                Transition<? super GifDrawable> transition) {
+
+                        resource.setLoopCount(GifDrawable.LOOP_FOREVER);
+                        resource.start();
+                        gif.setImageDrawable(resource);
+                    }
+
+                    @Override
+                    public void onLoadCleared(Drawable placeholder) {}
+                });
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION)
@@ -103,18 +126,11 @@ public class LoadingActivity extends AppCompatActivity {
             sound.release();
             sound = null;
         }
-        if (player != null){
-            player.release();
-            player = null;
-        }
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String[] permissions,
-                                           int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
         if (requestCode == LOCATION_PERMISSION_CODE) {
             if (grantResults.length > 0 &&
                     grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -132,48 +148,41 @@ public class LoadingActivity extends AppCompatActivity {
 
     private void getLocation() {
 
-        if (ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_FINE_LOCATION)
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             latitude = 52.52;
             longitude = 13.41;
             return;
         }
-
         fusedLocationClient.getLastLocation()
                 .addOnSuccessListener(location -> {
-
                     if (location != null) {
-
                         latitude = 52.52;
                         longitude = 13.41;
                     }
                 });
     }
 
-    @OptIn(markerClass = UnstableApi.class)
     private void init(){
-        //video
-        playerView = findViewById(R.id.loading);
-        player = new ExoPlayer.Builder(this).build();
-        playerView.setPlayer(player);
-        Uri uri = Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.loading);
-        MediaItem mediaItem = MediaItem.fromUri(uri);
-        player.setMediaItem(mediaItem);
-        player.setRepeatMode(Player.REPEAT_MODE_ALL);
-        player.prepare();
-        player.play();
+        //gif
+        gif = findViewById(R.id.loading);
+        Glide.with(this)
+                .asGif()
+                .load(R.drawable.loading)
+                .into(new CustomTarget<GifDrawable>() {
+                    @Override
+                    public void onResourceReady(GifDrawable resource, Transition<? super GifDrawable> transition) {
+                        resource.setLoopCount(GifDrawable.LOOP_FOREVER);
+                        gif.setImageDrawable(resource);
+                    }
+
+                    @Override
+                    public void onLoadCleared(Drawable placeholder) {}
+                });
         loadData();
         //sound
         sound = MediaPlayer.create(this, R.raw.kk_bashment);
         sound.setLooping(true);
         sound.start();
-
-        player.addListener(new Player.Listener() {
-            @Override
-            public void onPlaybackStateChanged(int state) {
-                Log.d("EXO", "State: " + state);
-            }
-        });
     }
 }

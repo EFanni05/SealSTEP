@@ -65,5 +65,6 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.0.1")
     implementation("androidx.media3:media3-exoplayer:1.2.1")
     implementation("androidx.media3:media3-ui:1.2.1")
+    implementation("androidx.core:core:1.12.0")
     annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
 }

@@ -5,11 +5,25 @@ import com.bumptech.glide.request.transition.Transition;
 import com.example.sealstep.WeatherAPI;
 
 import android.Manifest;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.media.MediaPlayer;
 import android.media.SoundPool;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -24,6 +38,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -39,20 +54,31 @@ import retrofit2.Call;
 import com.bumptech.glide.Glide;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 
-public class MainActivity extends AppCompatActivity {
-
+public class MainActivity extends AppCompatActivity implements SensorEventListener{
+    //sensors
+    private SensorManager sensorManager;
+    private Sensor stepSensor;
+    private static final int STEP_PERMISSION_CODE = 2001;
+    //location
     private static final int LOCATION_PERMISSION_CODE = 1001;
     private FusedLocationProviderClient fusedLocationClient;
+    //weather API
     private static final String URL  = "https://api.open-meteo.com/v1/";
     private ActivityResultLauncher<Intent> settingsLauncher;
     Retrofit retrofit = new Retrofit.Builder()
             .baseUrl(URL)
             .addConverterFactory(GsonConverterFactory.create())
             .build();
+    //sound
     private MediaPlayer player;
     private SoundPool sealsound;
     int sealSoundID;
+    //xml elements
     ImageView background;
     ImageView backgroundgif;
     //hungerbar
@@ -68,14 +94,29 @@ public class MainActivity extends AppCompatActivity {
 
     //regular variables
     SealVariables sealvar = new SealVariables();
+    //weather
     Weather weather = new Weather();
+    //Time
     int time = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+    private String getTodayDate() {
+        return new java.text.SimpleDateFormat("yyyyMMdd",
+                java.util.Locale.getDefault()).format(new java.util.Date());
+    }
+    //weather again
     private Handler handler = new Handler();
     private Runnable weatherRunnable;
     private API api;
-
+    //step count
+    private float totalSteps = 0f;
+    private float stepsAtMidnight = 0f;
+    private SharedPreferences prefs;
+    //gps
     double latitude;
     double longitude;
+    //notifs
+    NotificationManager notif;
+    Notification notification;
+    private static final int SLEEP_NOTIFICATION_ID = 100;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,6 +149,43 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onLoadCleared(Drawable placeholder) {}
                 });
+        //notifs
+        if (Build.VERSION.SDK_INT >= 33) {
+            if (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        3001);
+            }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
+            NotificationChannel channel =
+                    new NotificationChannel(
+                            "main_channel",
+                            "Main Notifications",
+                            NotificationManager.IMPORTANCE_DEFAULT
+                    );
+
+            NotificationManager manager =
+                    getSystemService(NotificationManager.class);
+
+            manager.createNotificationChannel(channel);
+        }
+        //step
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACTIVITY_RECOGNITION)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACTIVITY_RECOGNITION},
+                    STEP_PERMISSION_CODE);
+        }
+        Intent serviceIntent = new Intent(this, StepService.class);
+        ContextCompat.startForegroundService(this, serviceIntent);
+        Log.d("STEP_SERVICE", "Total: " + step);
         //geo
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         if (ContextCompat.checkSelfPermission(this,
@@ -188,12 +266,14 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 api.fetchWeather(latitude, longitude,
                         new API.WeatherCallback() {
-
                             @Override
                             public void onSuccess(Weather weather) {
+                                if (weather != null && weather.getCurrent() != null) {
+                                    isDay = weather.getCurrent().getIs_day();
+                                    weatherCode = weather.getCurrent().getWeather_code();
+                                }
                                 ChangeBG();
                             }
-
                             @Override
                             public void onError(String error) {
                                 trycount++;
@@ -216,8 +296,6 @@ public class MainActivity extends AppCompatActivity {
                 handler.postDelayed(this, 30 * 60 * 1000); // 30 minutes
             }
         };
-
-        handler.post(weatherRunnable);
     }
 
     int trycount = 0;
@@ -263,7 +341,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void ChangeBG() {
-        if (isDay == 0){ //day
+        if (isDay == 1){ //day
             if (weatherCode == 0) {
                 background.setImageResource(R.drawable.sunny);
                 backgroundgif.setVisibility(View.INVISIBLE);
@@ -303,7 +381,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         else{ //night
-            if (weatherCode == 1) {
+            if (weatherCode == 0) {
                 background.setImageResource(R.drawable.nighrclear);
                 backgroundgif.setVisibility(View.INVISIBLE);
                 gifNeed = 0;
@@ -346,13 +424,20 @@ public class MainActivity extends AppCompatActivity {
     private boolean SleepCheck() {
         if (time >= 20 || time < 6){
             seal.setImageResource(R.drawable.sleep);
+            notification =
+                    new NotificationCompat.Builder(this, "main_channel")
+                            .setContentTitle(getString(R.string.sleepSmall))
+                            .setContentText(getString(R.string.sleepMain))
+                            .setSmallIcon(R.drawable.notif_fish)
+                            .build();
+            notif.notify(SLEEP_NOTIFICATION_ID, notification);
             return true;
         }
+        notif.cancel(SLEEP_NOTIFICATION_ID);
         return false;
     }
 
     private void getLocation() {
-
         if (ActivityCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -360,17 +445,23 @@ public class MainActivity extends AppCompatActivity {
             longitude = 13.41;
             return;
         }
-
         fusedLocationClient.getLastLocation()
                 .addOnSuccessListener(location -> {
-
                     if (location != null) {
-
                         latitude = location.getLatitude();
                         longitude = location.getLongitude();
+                        handler.post(weatherRunnable);
                     }
                 });
     }
+
+    private BroadcastReceiver stepReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int steps = intent.getIntExtra(StepService.STEP_COUNT, 0);
+            step.setText(String.valueOf(steps));
+        }
+    };
 
     @Override
     protected void onDestroy() {
@@ -385,51 +476,111 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-
+        //when coming back from different activities
         if (player != null && sealvar.isSound()) {
             player.start();
         }
         if (gifNeed == 1){
+            backgroundgif.setVisibility(backgroundgif.VISIBLE);
             Glide.with(this)
                     .asGif()
                     .load(R.drawable.rain)
                     .into(backgroundgif);
         }
         if (gifNeed == 2){
+            backgroundgif.setVisibility(backgroundgif.VISIBLE);
             Glide.with(this)
                     .asGif()
                     .load(R.drawable.snow)
                     .into(backgroundgif);
+        }
+        if (stepSensor != null) {
+            sensorManager.registerListener(this, stepSensor,
+                    SensorManager.SENSOR_DELAY_FASTEST);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            registerReceiver(stepReceiver, new IntentFilter(StepService.STEP_BROADCAST),
+                    Context.RECEIVER_NOT_EXPORTED);
         }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-
+        //when moving to different activites
         if (player != null && player.isPlaying()) {
             player.pause();
         }
+        sensorManager.unregisterListener(this);
+        unregisterReceiver(stepReceiver);
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String[] permissions,
-                                           int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
         if (requestCode == LOCATION_PERMISSION_CODE) {
             if (grantResults.length > 0 &&
                     grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
                 getLocation();
             }
         }
+        if (requestCode == 3001) {
+            if (grantResults.length > 0 &&
+                    grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Now safe to start service
+                Intent serviceIntent = new Intent(this, StepService.class);
+                ContextCompat.startForegroundService(this, serviceIntent);
+            }
+        }
+    }
+
+
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int i) {
+        //no need one
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+
+        if (event.sensor.getType() != Sensor.TYPE_STEP_COUNTER) return;
+
+        totalSteps = event.values[0];
+
+        String savedDate = prefs.getString("date", "");
+        String today = getTodayDate();
+
+        if (!today.equals(savedDate)) {
+            // new day
+            stepsAtMidnight = totalSteps;
+
+            prefs.edit()
+                    .putFloat("midnight_steps", stepsAtMidnight)
+                    .putString("date", today)
+                    .apply();
+        } else {
+            stepsAtMidnight = prefs.getFloat("midnight_steps", totalSteps);
+        }
+
+        // reboot detection
+        if (totalSteps < stepsAtMidnight) {
+            stepsAtMidnight = totalSteps;
+            prefs.edit()
+                    .putFloat("midnight_steps", stepsAtMidnight)
+                    .apply();
+        }
+
+        int dailySteps = (int) (totalSteps - stepsAtMidnight);
+        if (dailySteps < 0) dailySteps = 0;
+
+        step.setText(String.valueOf(dailySteps));
     }
 
     private void init(){
         background = findViewById(R.id.background);
         backgroundgif = findViewById(R.id.backgroundgif);
+        backgroundgif.setVisibility(backgroundgif.INVISIBLE);
         Glide.with(this)
                 .asGif()
                 .load(R.drawable.snow)
@@ -458,10 +609,14 @@ public class MainActivity extends AppCompatActivity {
         else{
             player = MediaPlayer.create(this, R.raw.kk_soul);
         }
-        sealsound = new SoundPool.Builder().setMaxStreams(2).build();
+        sealsound = new SoundPool.Builder().setMaxStreams(1).build();
         sealSoundID = sealsound.load(this, R.raw.clapping_seal, 1);
         player.setLooping(true);
         player.start();
+        prefs = getSharedPreferences("steps", MODE_PRIVATE);
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+        notif = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         //read base data;
     }
 }

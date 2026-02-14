@@ -6,18 +6,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".LoadingActivity"
-    >
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/loadblue">
-        <androidx.media3.ui.PlayerView
-            android:id="@+id/loading"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:use_controller="false"
-            app:resize_mode="zoom"
-            app:surface_type="texture_view"
-            android:layout_gravity="center"/>
-    </FrameLayout>
+    android:background="@color/loadblue">
+   <ImageView
+       android:id="@+id/loading"
+       android:layout_width="350dp"
+       android:layout_height="350dp"
+       app:layout_constraintBottom_toBottomOf="parent"
+       app:layout_constraintStart_toStartOf="parent"
+       app:layout_constraintTop_toTopOf="parent"
+       app:layout_constraintEnd_toEndOf="parent"
+       android:layout_marginTop="50dp"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

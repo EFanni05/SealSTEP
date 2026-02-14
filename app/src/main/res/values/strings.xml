@@ -15,4 +15,9 @@
     <string name="nofish">You don\'t have fish</string>
     <string name="music">K.K. Slider</string>
     <string name="sleeping">I\'m sleeeeeping</string>
+    <string name="noData">N/A</string>
+    <string name="walkingStratMain">Let\'s start walking!! - \uD83E\uDDAD</string>
+    <string name="walikingStratSmall">Seal is watching you!</string>
+    <string name="sleepSmall">🌙💤</string>
+    <string name="sleepMain">Good night! - 🦭</string>
 </resources>

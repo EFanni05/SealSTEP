@@ -14,11 +14,13 @@
         android:layout_height="wrap_content"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent">
+
         <ImageView
             android:layout_width="400dp"
             android:layout_height="200dp"
             android:scaleType="fitStart"
-            android:src="@drawable/overlay2"/>
+            android:src="@drawable/overlay2" />
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -89,9 +91,10 @@
                 android:src="@drawable/location"
                 android:layout_marginEnd="15dp"/>
             <TextView
+                android:id="@+id/address"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/app_name"
+                android:text="@string/noData"
                 android:textSize="30sp"/>
         </LinearLayout>
         <!-- creadit -->
