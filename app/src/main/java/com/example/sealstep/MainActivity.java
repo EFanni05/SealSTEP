@@ -4,11 +4,15 @@ import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
 import com.example.sealstep.WeatherAPI;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.media.SoundPool;
 import android.os.Bundle;
+import android.os.Handler;
+import android.util.Log;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -19,6 +23,8 @@ import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -31,9 +37,13 @@ import java.util.Calendar;
 
 import retrofit2.Call;
 import com.bumptech.glide.Glide;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final int LOCATION_PERMISSION_CODE = 1001;
+    private FusedLocationProviderClient fusedLocationClient;
     private static final String URL  = "https://api.open-meteo.com/v1/";
     private ActivityResultLauncher<Intent> settingsLauncher;
     Retrofit retrofit = new Retrofit.Builder()
@@ -60,6 +70,12 @@ public class MainActivity extends AppCompatActivity {
     SealVariables sealvar = new SealVariables();
     Weather weather = new Weather();
     int time = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+    private Handler handler = new Handler();
+    private Runnable weatherRunnable;
+    private API api;
+
+    double latitude;
+    double longitude;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,11 +88,9 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
         init();
+        Log.d("MAIN", "MainActivity created");
         //seal sleep
         boolean sleep = SleepCheck();
-        //TODO: repeate call evry 30 mins
-        //wallpaper set
-        TimeCheck();
         //gifs
         Glide.with(this)
                 .asGif()
@@ -94,6 +108,18 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onLoadCleared(Drawable placeholder) {}
                 });
+        //geo
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    LOCATION_PERMISSION_CODE);
+        } else {
+            getLocation();
+        }
         settings.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -155,6 +181,43 @@ public class MainActivity extends AppCompatActivity {
                 sealsound.play(sealSoundID, 1f, 1f, 1, 0, 1f);
             }
         });
+        //Weather update!!
+        api = new API();
+        weatherRunnable = new Runnable() {
+            @Override
+            public void run() {
+                api.fetchWeather(latitude, longitude,
+                        new API.WeatherCallback() {
+
+                            @Override
+                            public void onSuccess(Weather weather) {
+                                ChangeBG();
+                            }
+
+                            @Override
+                            public void onError(String error) {
+                                trycount++;
+                                if (trycount < 2){
+                                    TimeCheck();
+                                }
+                                else{
+                                    trycount = 0;
+                                    weatherCode = 100; //clear
+                                    if (time <= 18 || time < 6){
+                                        isDay = 1;
+                                    }
+                                    else {
+                                        isDay = 0;
+                                    }
+                                }
+                            }
+                        });
+
+                handler.postDelayed(this, 30 * 60 * 1000); // 30 minutes
+            }
+        };
+
+        handler.post(weatherRunnable);
     }
 
     int trycount = 0;
@@ -200,7 +263,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void ChangeBG() {
-        if (isDay == 1){ //day
+        if (isDay == 0){ //day
             if (weatherCode == 0) {
                 background.setImageResource(R.drawable.sunny);
                 backgroundgif.setVisibility(View.INVISIBLE);
@@ -240,7 +303,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         else{ //night
-            if (weatherCode == 0) {
+            if (weatherCode == 1) {
                 background.setImageResource(R.drawable.nighrclear);
                 backgroundgif.setVisibility(View.INVISIBLE);
                 gifNeed = 0;
@@ -288,6 +351,27 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
+    private void getLocation() {
+
+        if (ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            latitude = 52.52;
+            longitude = 13.41;
+            return;
+        }
+
+        fusedLocationClient.getLastLocation()
+                .addOnSuccessListener(location -> {
+
+                    if (location != null) {
+
+                        latitude = location.getLatitude();
+                        longitude = location.getLongitude();
+                    }
+                });
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -295,6 +379,7 @@ public class MainActivity extends AppCompatActivity {
             player.release();
             player = null;
         }
+        handler.removeCallbacks(weatherRunnable);
     }
 
     @Override
@@ -324,6 +409,21 @@ public class MainActivity extends AppCompatActivity {
 
         if (player != null && player.isPlaying()) {
             player.pause();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String[] permissions,
+                                           int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == LOCATION_PERMISSION_CODE) {
+            if (grantResults.length > 0 &&
+                    grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                getLocation();
+            }
         }
     }
 
