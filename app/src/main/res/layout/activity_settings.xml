@@ -22,6 +22,7 @@
             android:src="@drawable/overlay2" />
 
         <TextView
+            android:id="@+id/settingtext"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/settings"
@@ -71,11 +72,12 @@
                 app:boxBackgroundColor="@color/lightblue"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
                 <AutoCompleteTextView
-                    android:id="@+id/dropdown"
+                    android:id="@+id/dropdownInner"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="none"/>
-
+                    android:inputType="none"
+                    android:fontFamily="sans-serif"
+                    android:textSize="20sp"/>
             </com.google.android.material.textfield.TextInputLayout>
         </LinearLayout>
         <!-- gps -->

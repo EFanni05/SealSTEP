@@ -3,12 +3,12 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH"/>
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
@@ -19,10 +19,15 @@
         android:roundIcon="@mipmap/logo_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.SealStep">
+        <activity
+            android:name=".StatActivity"
+            android:exported="false" />
+
         <service
             android:name=".StepService"
-            android:foregroundServiceType="health"
-            android:exported="false"/>
+            android:exported="false"
+            android:foregroundServiceType="health" />
+
         <activity
             android:name=".MainActivity"
             android:exported="false" />
@@ -31,8 +36,8 @@
             android:exported="false" />
         <activity
             android:name=".LoadingActivity"
-            android:theme="@style/Theme.SealStep.Loading"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/Theme.SealStep.Loading">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

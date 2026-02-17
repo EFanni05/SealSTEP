@@ -3,12 +3,19 @@ package com.example.sealstep;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.ConfigurationInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
@@ -16,9 +23,11 @@ import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
+import androidx.core.os.LocaleListCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
@@ -27,31 +36,41 @@ import com.google.android.gms.location.LocationServices;
 import android.location.Geocoder;
 import android.location.Address;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.List;
 import java.util.Locale;
 
 public class SettingsActivity extends AppCompatActivity {
 
+    private SharedPreferences prefs;
     private static final int LOCATION_PERMISSION_CODE = 1001;
     private FusedLocationProviderClient fusedLocationClient;
-    private ActivityResultLauncher<Intent> settingsLauncher;
     private MediaPlayer player;
+    TextView settingText;
     FrameLayout back;
     FrameLayout sound;
     ImageView soundPic;
     SealVariables sealVariables = new SealVariables();
     ImageView github;
     ImageView youtube;
-
+    AutoCompleteTextView dropdown;
     TextView addressView;
+    String[] codes = {
+            "hu",
+            "en"
+    };
+    String currentLang;
     double latitude;
     double longitude;
-    //and add the dropdown
     String addresstext;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        prefs  = getSharedPreferences("App_Pref", MODE_PRIVATE);
+        loadLanguage();
+        applySavedLanguage();
+        sealVariables.setSound(prefs.getBoolean("sound", true));
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_settings);
@@ -61,6 +80,20 @@ public class SettingsActivity extends AppCompatActivity {
             return insets;
         });
         init();
+        if (sealVariables.isSound()){
+            player.start();
+        }
+        else{
+            player.pause();
+        }
+        if (currentLang.equals("hu")){
+            ResizingHU();
+        }
+        String[] dropdownMenu = {
+                getString(R.string.ENemoji),
+                getString(R.string.HUemoji)
+                //and any more of the language
+        };
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION)
@@ -77,45 +110,28 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(SettingsActivity.this, MainActivity.class);
-                //extra data
-                intent.putExtra("sound", sealVariables.isSound());
-                //intent.putExtra("lang", sealVariables.getLang());
-                setResult(RESULT_OK, intent);
                 player.pause();
+                startActivity(intent);
                 finish();
             }
         });
-        settingsLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                        Intent data = result.getData();
-                        sealVariables.setSound(data.getBooleanExtra("sound", true));
-                        //sealvar.setLang(data.getStringExtra("lang"));
-                        if (player != null){
-                            if (sealVariables.isSound()){
-                                player.start();
-                            }
-                            else{
-                                player.pause();
-                            }
-                        }
-                    }
-                }
-        );
         sound.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                SharedPreferences.Editor e = prefs.edit();
                 if (sealVariables.isSound()){
                     sealVariables.setSound(false);
                     soundPic.setImageResource(R.drawable.mute);
                     player.pause();
+                    e.putBoolean("sound", false);
                 }
                 else{
                     sealVariables.setSound(true);
                     soundPic.setImageResource(R.drawable.sound);
                     player.start();
+                    e.putBoolean("sound", true);
                 }
+                e.apply();
             }
         });
         youtube.setOnClickListener(new View.OnClickListener() {
@@ -134,6 +150,79 @@ public class SettingsActivity extends AppCompatActivity {
                 startActivity(i);
             }
         });
+        //dropdown
+        dropdown.setText(dropdownMenu[findLang()], false);
+        ArrayAdapter<String> dropdownAdapter = new ArrayAdapter<>(
+                this, android.R.layout.simple_list_item_1, dropdownMenu
+        );
+        dropdown.setAdapter(dropdownAdapter);
+        dropdown.setThreshold(Integer.MAX_VALUE);
+        dropdown.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                String selectedCode = dropdownMenu[position];
+                saveLanguage(codes[position]);
+                setLang(codes[position]);
+                recreate();
+            }
+        });
+    }
+
+    private int findLang(){
+        SharedPreferences prefs = getSharedPreferences("Settings", MODE_PRIVATE);
+        String savedCode = prefs.getString("app_language", "en");
+        for (int i = 0; i < codes.length; i++) {
+            if (savedCode.equals(codes[i])){
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private void setLang(String select){
+        if (!select.isEmpty()){
+            SharedPreferences pref = getSharedPreferences("Settings", MODE_PRIVATE);
+            //now te setting it
+            SharedPreferences.Editor edit = pref.edit();
+            edit.putString("app_language", select);
+            edit.apply();
+        }
+        else{
+            Toast.makeText(this, getString(R.string.errorInLang), Toast.LENGTH_SHORT).show();
+        }
+    }
+    private void loadLanguage() {
+
+        SharedPreferences prefs =
+                getSharedPreferences("Settings", MODE_PRIVATE);
+        String languageCode =
+                prefs.getString("app_language", "en"); // default
+        setLang(languageCode);
+    }
+    private void saveLanguage(String select) {
+        Locale l = new Locale(select);
+        Locale.setDefault(l);
+        Configuration config = new Configuration();
+        config.setLocale(l);
+        getResources().updateConfiguration(config, getResources().getDisplayMetrics());
+    }
+
+    private void applySavedLanguage() {
+
+        SharedPreferences prefs =
+                getSharedPreferences("Settings", MODE_PRIVATE);
+
+        String languageCode =
+                prefs.getString("app_language", "en");
+
+        LocaleListCompat appLocale =
+                LocaleListCompat.forLanguageTags(languageCode);
+        AppCompatDelegate.setApplicationLocales(appLocale);
+        currentLang = languageCode;
+    }
+
+    public void ResizingHU(){
+        settingText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 39);
     }
 
     @Override
@@ -194,6 +283,7 @@ public class SettingsActivity extends AppCompatActivity {
     private void getAddress(double latitude, double longitude) {
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
         try {
+            //getting the address
             List<Address> addresses =
                     geocoder.getFromLocation(latitude, longitude, 1);
             if (addresses != null && !addresses.isEmpty()) {
@@ -203,7 +293,17 @@ public class SettingsActivity extends AppCompatActivity {
                 String city = address.getLocality();
                 String street = address.getThoroughfare();
                 String country = address.getCountryName();
-                addresstext = street + ", " + city + "\n" + country;
+                //no street name
+                if (street.isEmpty()){
+                    addresstext = city + ", " + country;
+                } else if (street.isEmpty() && city.isEmpty()) {
+                    //on highway or forest type of shit
+                    addresstext = getString(R.string.somewhere)+ ", " + country;
+                }
+                else{
+                    //base
+                    addresstext = street + ", " + city + "\n" + country;
+                }
                 //for testing
                 Log.d("ADDRESS", "City: " + city);
                 Log.d("ADDRESS", "Street: " + street);
@@ -222,9 +322,16 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
     private void init(){
+        settingText = findViewById(R.id.settingtext);
         back = findViewById(R.id.backbutton);
         sound = findViewById(R.id.soundbutton);
         soundPic = findViewById(R.id.soundpic);
+        if (sealVariables.isSound()){
+            soundPic.setImageResource(R.drawable.sound);
+        }
+        else{
+            soundPic.setImageResource(R.drawable.mute);
+        }
         github = findViewById(R.id.github);
         youtube = findViewById(R.id.youtube);
         addressView = findViewById(R.id.address);
@@ -232,5 +339,6 @@ public class SettingsActivity extends AppCompatActivity {
         player = MediaPlayer.create(this, R.raw.kk_bashment);
         player.setLooping(true);
         player.start();
+        dropdown = findViewById(R.id.dropdownInner);
     }
 }

@@ -109,8 +109,58 @@ public class LoadingActivity extends AppCompatActivity {
         });
     }
 
-    private void openMain() {
+    private boolean GeoPerm() {
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
 
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    LOCATION_PERMISSION_CODE);
+            return false;
+        }
+        return true;
+
+    }
+
+    private boolean StepPerm() {
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACTIVITY_RECOGNITION)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACTIVITY_RECOGNITION},
+                    2001);
+            return false;
+        }
+        return true;
+    }
+
+    private boolean Notifperm() {
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    3001);
+            return false;
+        }
+        return true;
+    }
+
+    private void openMain() {
+        boolean allPremsGot = false;
+        //loop until get the perms!!!
+        while (allPremsGot == false){
+            boolean geo = GeoPerm();
+            boolean step = StepPerm();
+            boolean notif = Notifperm();
+            if (geo && step && notif){
+                allPremsGot = true;
+            }
+        }
+        //goin to main
         if (alreadyOpened) return;
         alreadyOpened = true;
         sound.stop();

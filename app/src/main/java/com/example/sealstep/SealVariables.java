@@ -2,7 +2,7 @@ package com.example.sealstep;
 
 public class SealVariables {
     private int stepcount = 0;
-    private int fishcount = 0;
+    private int fishcount = 1;
     private boolean sound = true;
     private String lang;
 
@@ -35,8 +35,28 @@ public class SealVariables {
         return this.lang;
     }
 
+    public int setHunger() {
+        //setting hunger level
+        if (hunger > 0 && hunger < 4 && fishcount > 0){
+            //regular
+            hunger += 0.5;
+            fishcount--;
+            return 1;
+        } else if (hunger == 4) {
+            //full
+            return 0;
+        }
+        return -1;
+    }
+
     public void setHunger(double hunger) {
         this.hunger = hunger;
+    }
+
+    private void StapBaseHunger(){
+        if (stepcount % 2500 == 0 && hunger > 0){
+            hunger -= 0.5;
+        }
     }
 
     public double getHunger() {

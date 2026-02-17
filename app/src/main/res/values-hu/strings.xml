@@ -1,0 +1,50 @@
+<resources>
+    <string name="app_name">SealSTEP</string>
+    <!--Display-->
+    <string name="language">Nyelv:</string>
+    <string name="version">verzió: 1.0-beta</string>
+    <string name="myName">Elekes Fanni</string>
+    <string name="creadit">Kredits:</string>
+    <string name="settings">Beállitások</string>
+    <string name="stat">TUNA rating</string>
+    <!--Language-->
+    <string name="EN">Angol</string>
+    <string name="HU">Magyar</string>
+    <string name="ENemoji">🇭🇺</string>
+    <string name="HUemoji">🇬🇧</string>
+    <string name="errorInLang">Valami félre ment</string>
+    <!--Gameplay-->
+    <string name="Feed">Etets meg!</string>
+    <string name="haveFish">%d darab halad van</string>
+    <string name="nofish">Nincs halad</string>
+    <string name="sleeping">Alssssszok</string>
+    <string name="fullHunger">Televagyok</string>
+    <!--Notifications-->
+    <string name="walkingStratMain">Gyerünk, sétáljunk! - 🦭</string>
+    <string name="walikingStratSmall">Fóka most figyelj</string>
+    <string name="sleepSmall">🌙💤</string>
+    <string name="sleepMain">Jó éjt - 🦭</string>
+    <string name="goalHitSmall">Napi cél elérve!!</string>
+    <string name="goalHitMain">Yay!\nElérted a napi d% lépésedet! - 🦭</string>
+    <string name="dailySmall">Napi emlékesztető</string>
+    <string name="dailyMain">Wow!\nd% lépést tettél meg ma! - 🦭</string>
+    <string name="weeklySmall">Heti emlékesztető</string>
+    <string name="weeklyBig">Ez heti TUNA report-od készen van! - 🦭</string>
+    <string name="offendedSmall">Fóka meg van sértődve</string>
+    <string name="offendedMain">Hallotál arról a dologról, hogy SÉTÁLÁS?! - 🦭</string>
+    <!--Geo-->
+    <string name="somewhere">Valahol </string>
+    <string name="noData">N/A</string>
+    <!--Stat-->
+    <string name="Monday">H</string>
+    <string name="Tuesday">K</string>
+    <string name="Wendesday">Sze</string>
+    <string name="Thursday">Cs</string>
+    <string name="Friday">P</string>
+    <string name="Saturday">Szo</string>
+    <string name="Sunday">V</string>
+    <string name="NoStep">-</string>
+    <string name="Weekly">Heti napló</string>
+    <!--Alertbox-->
+    <string name="Title">Állíts be a napi célt!</string>
+</resources>

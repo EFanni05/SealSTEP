@@ -2,7 +2,6 @@ package com.example.sealstep;
 import com.bumptech.glide.load.resource.gif.GifDrawable;
 import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
-import com.example.sealstep.WeatherAPI;
 
 import android.Manifest;
 import android.app.Notification;
@@ -14,8 +13,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -34,13 +31,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
+import androidx.core.os.LocaleListCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
@@ -54,12 +51,9 @@ import retrofit2.Call;
 import com.bumptech.glide.Glide;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener{
+    private SharedPreferences prefsMain;
     //sensors
     private SensorManager sensorManager;
     private Sensor stepSensor;
@@ -69,7 +63,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private FusedLocationProviderClient fusedLocationClient;
     //weather API
     private static final String URL  = "https://api.open-meteo.com/v1/";
-    private ActivityResultLauncher<Intent> settingsLauncher;
     Retrofit retrofit = new Retrofit.Builder()
             .baseUrl(URL)
             .addConverterFactory(GsonConverterFactory.create())
@@ -77,7 +70,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     //sound
     private MediaPlayer player;
     private SoundPool sealsound;
+    private SoundPool sealsoundEater;
     int sealSoundID;
+    int sealEatID;
     //xml elements
     ImageView background;
     ImageView backgroundgif;
@@ -91,13 +86,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     ImageView seal;
     FrameLayout feeding;
     FrameLayout fishbutton;
-
+    FrameLayout statbutton;
     //regular variables
+    WeeklySteps weekly = new WeeklySteps();
     SealVariables sealvar = new SealVariables();
     //weather
     Weather weather = new Weather();
-    //Time
+    //Time + date
     int time = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+    int day = Calendar.getInstance().get(Calendar.DAY_OF_WEEK);
     private String getTodayDate() {
         return new java.text.SimpleDateFormat("yyyyMMdd",
                 java.util.Locale.getDefault()).format(new java.util.Date());
@@ -108,8 +105,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private API api;
     //step count
     private float totalSteps = 0f;
-    private float stepsAtMidnight = 0f;
-    private SharedPreferences prefs;
+    StepService award = new StepService();
     //gps
     double latitude;
     double longitude;
@@ -117,9 +113,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     NotificationManager notif;
     Notification notification;
     private static final int SLEEP_NOTIFICATION_ID = 100;
+    private static final int DAILY_RECAP_NOTIFICATION_ID = 101;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        prefsMain  = getSharedPreferences("App_Pref", MODE_PRIVATE);
+        applySavedLanguage();
+        sealvar.setSound(prefsMain.getBoolean("sound", true));
+        sealvar.setFishcount(prefsMain.getInt("fishcount", 1));
+        sealvar.setHunger((double) (prefsMain.getFloat("hunger", 0)));
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
@@ -130,6 +132,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         });
         init();
         Log.d("MAIN", "MainActivity created");
+        if (sealvar.isSound()){
+            player.start();
+        }
+        else{
+            player.pause();
+        }
         //seal sleep
         boolean sleep = SleepCheck();
         //gifs
@@ -151,80 +159,42 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 });
         //notifs
         if (Build.VERSION.SDK_INT >= 33) {
-            if (ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.POST_NOTIFICATIONS)
-                    != PackageManager.PERMISSION_GRANTED) {
-
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                        3001);
-            }
+            Notifperm();
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (Notifperm()) {
+                NotificationChannel channel =
+                        new NotificationChannel(
+                                "main_channel",
+                                "Main Notifications",
+                                NotificationManager.IMPORTANCE_DEFAULT
+                        );
 
-            NotificationChannel channel =
-                    new NotificationChannel(
-                            "main_channel",
-                            "Main Notifications",
-                            NotificationManager.IMPORTANCE_DEFAULT
-                    );
+                NotificationManager manager =
+                        getSystemService(NotificationManager.class);
 
-            NotificationManager manager =
-                    getSystemService(NotificationManager.class);
-
-            manager.createNotificationChannel(channel);
+                manager.createNotificationChannel(channel);
+            }
         }
         //step
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.ACTIVITY_RECOGNITION)
-                != PackageManager.PERMISSION_GRANTED) {
-
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACTIVITY_RECOGNITION},
-                    STEP_PERMISSION_CODE);
+        if (StepPerm()){
+            Intent serviceIntent = new Intent(this, StepService.class);
+            ContextCompat.startForegroundService(this, serviceIntent);
+            Log.d("STEP_SERVICE", "Total: " + step);
         }
-        Intent serviceIntent = new Intent(this, StepService.class);
-        ContextCompat.startForegroundService(this, serviceIntent);
-        Log.d("STEP_SERVICE", "Total: " + step);
         //geo
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                    LOCATION_PERMISSION_CODE);
-        } else {
+        if (GeoPerm()){
+            fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
             getLocation();
         }
         settings.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent i = new Intent(MainActivity.this, SettingsActivity.class);
-                i.putExtra("sound" , sealvar.isSound());
                 player.pause();
-                settingsLauncher.launch(i);
+                startActivity(i);
             }
         });
-        settingsLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                        Intent data = result.getData();
-                        sealvar.setSound(data.getBooleanExtra("sound", true));
-                        //sealvar.setLang(data.getStringExtra("lang"));
-                        if (player != null){
-                            if (sealvar.isSound()){
-                                player.start();
-                            }
-                            else{
-                                player.pause();
-                            }
-                        }
-                    }
-                }
-        );
         fishbutton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -248,7 +218,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         Toast.makeText(MainActivity.this, R.string.nofish, Toast.LENGTH_SHORT).show();
                     }
                     else{
-                        //feeding
+                        int res = FeedSeal();
+                        switch (res){
+                            case 0:
+                                Toast.makeText(MainActivity.this, getString(R.string.fullHunger), Toast.LENGTH_SHORT).show();
+                                break;
+                            case 1:
+                                feedSet();
+                                break;
+                            default:
+                                break;
+                        }
                     }
                 }
             }
@@ -259,43 +239,169 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 sealsound.play(sealSoundID, 1f, 1f, 1, 0, 1f);
             }
         });
-        //Weather update!!
-        api = new API();
-        weatherRunnable = new Runnable() {
+        statbutton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void run() {
-                api.fetchWeather(latitude, longitude,
-                        new API.WeatherCallback() {
-                            @Override
-                            public void onSuccess(Weather weather) {
-                                if (weather != null && weather.getCurrent() != null) {
-                                    isDay = weather.getCurrent().getIs_day();
-                                    weatherCode = weather.getCurrent().getWeather_code();
-                                }
-                                ChangeBG();
-                            }
-                            @Override
-                            public void onError(String error) {
-                                trycount++;
-                                if (trycount < 2){
-                                    TimeCheck();
-                                }
-                                else{
-                                    trycount = 0;
-                                    weatherCode = 100; //clear
-                                    if (time <= 18 || time < 6){
-                                        isDay = 1;
-                                    }
-                                    else {
-                                        isDay = 0;
-                                    }
-                                }
-                            }
-                        });
-
-                handler.postDelayed(this, 30 * 60 * 1000); // 30 minutes
+            public void onClick(View view) {
+                Intent i = new Intent(MainActivity.this, StatActivity.class);
+                //extra data if needed
+                startActivity(i);
             }
-        };
+        });
+        //Weather update!!
+        if (GeoPerm()) {
+            api = new API();
+            weatherRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    api.fetchWeather(latitude, longitude,
+                            new API.WeatherCallback() {
+                                @Override
+                                public void onSuccess(Weather weather) {
+                                    if (weather != null && weather.getCurrent() != null) {
+                                        isDay = weather.getCurrent().getIs_day();
+                                        weatherCode = weather.getCurrent().getWeather_code();
+                                    }
+                                    ChangeBG();
+                                }
+                                @Override
+                                public void onError(String error) {
+                                    trycount++;
+                                    if (trycount < 2){
+                                        TimeCheck();
+                                    }
+                                    else{
+                                        trycount = 0;
+                                        weatherCode = 100; //clear
+                                        if (time <= 18 || time < 6){
+                                            isDay = 1;
+                                        }
+                                        else {
+                                            isDay = 0;
+                                        }
+                                    }
+                                }
+                            });
+
+                    handler.postDelayed(this, 30 * 60 * 1000); // 30 minutes
+                }
+            };
+        }
+    }
+
+    private void feedSet() {
+        seal.setImageResource(R.drawable.eat);
+        new android.os.Handler().postDelayed(() -> {
+            sealsoundEater.play(sealEatID, 1f, 1f, 1, 0, 1f);
+            seal.setImageResource(R.drawable.seal);
+        }, 2000);
+        //img setting
+        int h = (int)(sealvar.getHunger() / 0.5);
+        if (h % 2 == 0 && sealvar.getHunger() <= 8){
+            //full
+            switch (h){
+                case 2:
+                    hunger1.setImageResource(R.drawable.fish);
+                    hunger2.setImageResource(R.drawable.emptyfish);
+                    hunger3.setImageResource(R.drawable.emptyfish);
+                    hunger4.setImageResource(R.drawable.emptyfish);
+                case 4:
+                    hunger1.setImageResource(R.drawable.fish);
+                    hunger2.setImageResource(R.drawable.fish);
+                    hunger3.setImageResource(R.drawable.emptyfish);
+                    hunger4.setImageResource(R.drawable.emptyfish);
+                case 6:
+                    hunger1.setImageResource(R.drawable.fish);
+                    hunger2.setImageResource(R.drawable.fish);
+                    hunger3.setImageResource(R.drawable.fish);
+                    hunger4.setImageResource(R.drawable.emptyfish);
+                case 8:
+                    hunger1.setImageResource(R.drawable.fish);
+                    hunger2.setImageResource(R.drawable.fish);
+                    hunger3.setImageResource(R.drawable.fish);
+                    hunger4.setImageResource(R.drawable.fish);
+            }
+        }
+        else{
+            switch (h){
+                case 1:
+                    hunger1.setImageResource(R.drawable.half);
+                    hunger2.setImageResource(R.drawable.emptyfish);
+                    hunger3.setImageResource(R.drawable.emptyfish);
+                    hunger4.setImageResource(R.drawable.emptyfish);
+                case 3:
+                    hunger1.setImageResource(R.drawable.fish);
+                    hunger2.setImageResource(R.drawable.half);
+                    hunger3.setImageResource(R.drawable.emptyfish);
+                    hunger4.setImageResource(R.drawable.emptyfish);
+                case 5:
+                    hunger1.setImageResource(R.drawable.fish);
+                    hunger2.setImageResource(R.drawable.fish);
+                    hunger3.setImageResource(R.drawable.half);
+                    hunger4.setImageResource(R.drawable.emptyfish);
+                case 7:
+                    hunger1.setImageResource(R.drawable.fish);
+                    hunger2.setImageResource(R.drawable.fish);
+                    hunger3.setImageResource(R.drawable.fish);
+                    hunger4.setImageResource(R.drawable.half);
+            }
+        }
+    }
+
+    private int FeedSeal() {
+        return sealvar.setHunger();
+    }
+
+    private void applySavedLanguage() {
+
+        SharedPreferences prefs =
+                getSharedPreferences("Settings", MODE_PRIVATE);
+
+        String languageCode =
+                prefs.getString("app_language", "en");
+
+        LocaleListCompat appLocale =
+                LocaleListCompat.forLanguageTags(languageCode);
+
+        AppCompatDelegate.setApplicationLocales(appLocale);
+    }
+
+    private boolean GeoPerm() {
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    LOCATION_PERMISSION_CODE);
+            return false;
+        }
+        return true;
+    }
+
+    private boolean StepPerm() {
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACTIVITY_RECOGNITION)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACTIVITY_RECOGNITION},
+                    STEP_PERMISSION_CODE);
+            return false;
+        }
+        return true;
+    }
+
+    private boolean Notifperm() {
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    3001);
+            return false;
+        }
+        return true;
     }
 
     int trycount = 0;
@@ -303,11 +409,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     int weatherCode;
     int gifNeed = 0;
     private void TimeCheck() {
-        //get these from gps
-        double lat = 52.52;
-        double lon = 13.41;
         WeatherAPI weatherAPI = retrofit.create(WeatherAPI.class);
-        Call<Weather> call = weatherAPI.getForecast(lat, lon);
+        Call<Weather> call = weatherAPI.getForecast(latitude, longitude);
         call.enqueue(new Callback<Weather>() {
             @Override
             public void onResponse(Call<Weather> call, Response<Weather> response) {
@@ -431,10 +534,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                             .setSmallIcon(R.drawable.notif_fish)
                             .build();
             notif.notify(SLEEP_NOTIFICATION_ID, notification);
+
+            SetExtra();
             return true;
         }
         notif.cancel(SLEEP_NOTIFICATION_ID);
         return false;
+    }
+
+    private void SetExtra(){
+        SharedPreferences.Editor e = prefsMain.edit();
+        e.putFloat("hunger", (float) sealvar.getHunger());
+        e.putInt("fishcount", sealvar.getFishcount());
+        e.apply();
     }
 
     private void getLocation() {
@@ -534,46 +646,57 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-
-
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
         //no need one
     }
 
+    //TODO: redo this
     @Override
     public void onSensorChanged(SensorEvent event) {
-
+        //base trigger
         if (event.sensor.getType() != Sensor.TYPE_STEP_COUNTER) return;
-
         totalSteps = event.values[0];
-
-        String savedDate = prefs.getString("date", "");
-        String today = getTodayDate();
-
-        if (!today.equals(savedDate)) {
-            // new day
-            stepsAtMidnight = totalSteps;
-
-            prefs.edit()
-                    .putFloat("midnight_steps", stepsAtMidnight)
-                    .putString("date", today)
-                    .apply();
-        } else {
-            stepsAtMidnight = prefs.getFloat("midnight_steps", totalSteps);
-        }
-
-        // reboot detection
-        if (totalSteps < stepsAtMidnight) {
-            stepsAtMidnight = totalSteps;
-            prefs.edit()
-                    .putFloat("midnight_steps", stepsAtMidnight)
-                    .apply();
-        }
-
-        int dailySteps = (int) (totalSteps - stepsAtMidnight);
+        int dailySteps = (int) totalSteps;
         if (dailySteps < 0) dailySteps = 0;
-
+        sealvar.setStepcount(dailySteps);
+        if (award.isFishAward()){
+            sealvar.setFishcount(sealvar.getFishcount() + 1);
+        }
+        SharedPreferences.Editor e = prefsMain.edit();
+        switch (day){
+            case 1: //Su
+                weekly.setSunday(sealvar.getStepcount());
+                e.putInt("sun", weekly.getSunday());
+                break;
+            case 2: //M
+                weekly.setMonday(sealvar.getStepcount());
+                e.putInt("mon", weekly.getMonday());
+                break;
+            case 3: //Tu
+                weekly.setTuesday(sealvar.getStepcount());
+                e.putInt("tue", weekly.getTuesday());
+                break;
+            case 4: //w
+                weekly.setWendesday(sealvar.getStepcount());
+                e.putInt("wen", weekly.getWendesday());
+                break;
+            case 5: //Th
+                weekly.setThursday(sealvar.getStepcount());
+                e.putInt("thu", weekly.getThursday());
+                break;
+            case 6: //F
+                weekly.setFriday(sealvar.getStepcount());
+                e.putInt("fri", sealvar.getStepcount());
+                break;
+            case 7: //Sa
+                weekly.setSaturday(sealvar.getStepcount());
+                e.putInt("sat", weekly.getSaturday());
+                break;
+            default:
+                Toast.makeText(this, getString(R.string.errorInLang), Toast.LENGTH_SHORT).show();
+                break;
+        }
         step.setText(String.valueOf(dailySteps));
     }
 
@@ -603,6 +726,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         seal = findViewById(R.id.seal);
         feeding = findViewById(R.id.feedingbutton);
         fishbutton = findViewById(R.id.fishbutton);
+        statbutton = findViewById(R.id.statbutton);
         if(time >= 22 || time < 6){
             player = MediaPlayer.create(this, R.raw.stalecupcake);
         }
@@ -610,10 +734,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             player = MediaPlayer.create(this, R.raw.kk_soul);
         }
         sealsound = new SoundPool.Builder().setMaxStreams(1).build();
-        sealSoundID = sealsound.load(this, R.raw.clapping_seal, 1);
+        sealSoundID = sealsound.load(this, R.raw.clapping_seal, 2);
+        sealsoundEater = new SoundPool.Builder().setMaxStreams(1).build();
+        sealEatID = sealsoundEater.load(this, R.raw.nomnom, 1);
         player.setLooping(true);
         player.start();
-        prefs = getSharedPreferences("steps", MODE_PRIVATE);
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
         notif = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);

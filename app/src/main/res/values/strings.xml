@@ -1,23 +1,50 @@
 <resources>
     <string name="app_name">SealSTEP</string>
-    <string name="remaning">remaining</string>
-    <string name="Feed">Feed me!</string>
+    <!--Display-->
     <string name="language">Language:</string>
     <string name="version">version: 1.0-beta</string>
     <string name="myName">Elekes Fanni</string>
     <string name="creadit">Credits:</string>
     <string name="settings">Settings</string>
+    <string name="stat">TUNA rating</string>
+    <!--Language-->
     <string name="EN">English</string>
     <string name="HU">Hungarian</string>
     <string name="ENemoji">🇭🇺</string>
     <string name="HUemoji">🇬🇧</string>
+    <string name="errorInLang">Something went wrong</string>
+    <!--Gameplay-->
+    <string name="Feed">Feed me!</string>
     <string name="haveFish">You have %d fish</string>
     <string name="nofish">You don\'t have fish</string>
-    <string name="music">K.K. Slider</string>
     <string name="sleeping">I\'m sleeeeeping</string>
-    <string name="noData">N/A</string>
-    <string name="walkingStratMain">Let\'s start walking!! - \uD83E\uDDAD</string>
+    <string name="fullHunger">I\m stuffed</string>
+    <!--Notifications-->
+    <string name="walkingStratMain">Let\'s start walking!! - 🦭</string>
     <string name="walikingStratSmall">Seal is watching you!</string>
     <string name="sleepSmall">🌙💤</string>
     <string name="sleepMain">Good night! - 🦭</string>
+    <string name="goalHitSmall">Daily goal REACHED!!</string>
+    <string name="goalHitMain">Yay!\nYou hit your daily goal of d% steps! - 🦭</string>
+    <string name="dailySmall">Daily recap</string>
+    <string name="dailyMain">Wow!\nYou walked d% steps! - 🦭</string>
+    <string name="weeklySmall">Weekly recap</string>
+    <string name="weeklyBig">You\'r weekly TUNA report is ready! - 🦭</string>
+    <string name="offendedSmall">Seal is offended</string>
+    <string name="offendedMain">Have you heard of a thing called WALKING!? - 🦭</string>
+    <!--Geo-->
+    <string name="somewhere">Somewhere in </string>
+    <string name="noData">N/A</string>
+    <!--Stat-->
+    <string name="Monday">Mon</string>
+    <string name="Tuesday">Tue</string>
+    <string name="Wendesday">Wen</string>
+    <string name="Thursday">Thu</string>
+    <string name="Friday">Fri</string>
+    <string name="Saturday">Sat</string>
+    <string name="Sunday">Sun</string>
+    <string name="NoStep">-</string>
+    <string name="Weekly">Weekly activity</string>
+    <!--Alertbox-->
+    <string name="Title">Set daily step goal!</string>
 </resources>
