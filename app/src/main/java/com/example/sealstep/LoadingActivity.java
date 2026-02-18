@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.icu.util.Calendar;
 import android.media.MediaPlayer;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ImageView;
@@ -55,6 +56,7 @@ public class LoadingActivity extends AppCompatActivity {
         });
         Log.d("LOADING", "LoadingActivity created");
         init();
+        checkAllPermissions();
         //gif
         Glide.with(this)
                 .asGif()
@@ -137,6 +139,10 @@ public class LoadingActivity extends AppCompatActivity {
     }
 
     private boolean Notifperm() {
+        Log.d("NOTIF", "SDK: " + Build.VERSION.SDK_INT);
+        Log.d("NOTIF", "Permission: " +
+                ContextCompat.checkSelfPermission(this,
+                        Manifest.permission.POST_NOTIFICATIONS));
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -150,23 +156,45 @@ public class LoadingActivity extends AppCompatActivity {
     }
 
     private void openMain() {
-        boolean allPremsGot = false;
-        //loop until get the perms!!!
-        while (allPremsGot == false){
-            boolean geo = GeoPerm();
-            boolean step = StepPerm();
-            boolean notif = Notifperm();
-            if (geo && step && notif){
-                allPremsGot = true;
-            }
-        }
-        //goin to main
         if (alreadyOpened) return;
         alreadyOpened = true;
-        sound.stop();
+        if (sound != null) {
+            sound.stop();
+        }
         startActivity(new Intent(this, MainActivity.class));
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         finish();
+    }
+
+    private void checkAllPermissions() {
+
+        boolean geo = ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+
+        boolean step = ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACTIVITY_RECOGNITION)
+                == PackageManager.PERMISSION_GRANTED;
+
+        boolean notif = true;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notif = ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.POST_NOTIFICATIONS)
+                    == PackageManager.PERMISSION_GRANTED;
+        }
+
+        if (geo && step && notif) {
+            openMain();
+            return;
+        }
+
+        ActivityCompat.requestPermissions(this,
+                new String[]{
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACTIVITY_RECOGNITION,
+                        Manifest.permission.POST_NOTIFICATIONS
+                },
+                999);
     }
 
     @Override
@@ -181,19 +209,10 @@ public class LoadingActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == LOCATION_PERMISSION_CODE) {
-            if (grantResults.length > 0 &&
-                    grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                getLocation();
-            }
+        if (requestCode == 999) {
+            checkAllPermissions();
         }
-    }
-
-    private void loadData() {
-        new android.os.Handler().postDelayed(() -> {
-            openMain();
-        }, 4000);
     }
 
     private void getLocation() {
@@ -229,7 +248,6 @@ public class LoadingActivity extends AppCompatActivity {
                     @Override
                     public void onLoadCleared(Drawable placeholder) {}
                 });
-        loadData();
         //sound
         sound = MediaPlayer.create(this, R.raw.kk_bashment);
         sound.setLooping(true);

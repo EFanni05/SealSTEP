@@ -1,5 +1,7 @@
 package com.example.sealstep;
 
+import android.util.Log;
+
 public class SealVariables {
     private int stepcount = 0;
     private int fishcount = 1;
@@ -37,13 +39,15 @@ public class SealVariables {
 
     public int setHunger() {
         //setting hunger level
-        if (hunger > 0 && hunger < 4 && fishcount > 0){
+        if (hunger < 4.0 && fishcount > 0){
             //regular
             hunger += 0.5;
             fishcount--;
+            Log.d("items", String.valueOf(fishcount));
             return 1;
-        } else if (hunger == 4) {
+        } else if (hunger >= 4.0) {
             //full
+            Log.d("b", "FULL SEAL");
             return 0;
         }
         return -1;
@@ -53,7 +57,7 @@ public class SealVariables {
         this.hunger = hunger;
     }
 
-    private void StapBaseHunger(){
+    public void StepBaseHunger(){
         if (stepcount % 2500 == 0 && hunger > 0){
             hunger -= 0.5;
         }
@@ -62,6 +66,7 @@ public class SealVariables {
     public double getHunger() {
         return hunger;
     }
+
 
     public void setSound(boolean sound) {
         this.sound = sound;

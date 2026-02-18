@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     //sensors
     private SensorManager sensorManager;
     private Sensor stepSensor;
+    private BroadcastReceiver stepReceiver;
     private static final int STEP_PERMISSION_CODE = 2001;
     //location
     private static final int LOCATION_PERMISSION_CODE = 1001;
@@ -88,7 +89,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     FrameLayout fishbutton;
     FrameLayout statbutton;
     //regular variables
-    WeeklySteps weekly = new WeeklySteps();
     SealVariables sealvar = new SealVariables();
     //weather
     Weather weather = new Weather();
@@ -105,7 +105,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private API api;
     //step count
     private float totalSteps = 0f;
-    StepService award = new StepService();
+    private int base;
+    public static final String STEP_COUNT = "step_count";
+    StepService stepService = new StepService();
     //gps
     double latitude;
     double longitude;
@@ -121,7 +123,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         applySavedLanguage();
         sealvar.setSound(prefsMain.getBoolean("sound", true));
         sealvar.setFishcount(prefsMain.getInt("fishcount", 1));
-        sealvar.setHunger((double) (prefsMain.getFloat("hunger", 0)));
+        sealvar.setHunger((double) (prefsMain.getFloat("hunger", 4)));
+        Log.d("feeding", "Huger stat" + String.valueOf(sealvar.getHunger()));
+        base = prefsMain.getInt("base_steps", -1);
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
@@ -131,6 +135,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             return insets;
         });
         init();
+        //for img
+        feedSet();
         Log.d("MAIN", "MainActivity created");
         if (sealvar.isSound()){
             player.start();
@@ -140,6 +146,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
         //seal sleep
         boolean sleep = SleepCheck();
+        Log.d("SLEEP_CHECK", String.valueOf(sleep));
         //gifs
         Glide.with(this)
                 .asGif()
@@ -178,9 +185,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
         //step
         if (StepPerm()){
-            Intent serviceIntent = new Intent(this, StepService.class);
-            ContextCompat.startForegroundService(this, serviceIntent);
+            sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+            stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+            /**sensorManager.registerListener(
+                    this,
+                    stepSensor,
+                    SensorManager.SENSOR_DELAY_FASTEST
+            );**/
+            Intent intent = new Intent(this, StepService.class);
+            ContextCompat.startForegroundService(this, intent);
+            stepReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    int steps = intent.getIntExtra(STEP_COUNT, 0);
+                    Log.d("STEP_DEBUG", "Broadcast sent: " + steps);
+                    step.setText(String.valueOf(steps));
+                }
+            };
             Log.d("STEP_SERVICE", "Total: " + step);
+            sealvar.StepBaseHunger();
         }
         //geo
         if (GeoPerm()){
@@ -219,11 +242,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     }
                     else{
                         int res = FeedSeal();
+                        Log.d("feeding stat", String.valueOf(res));
                         switch (res){
                             case 0:
                                 Toast.makeText(MainActivity.this, getString(R.string.fullHunger), Toast.LENGTH_SHORT).show();
                                 break;
                             case 1:
+                                Log.d("feeding", "1");
+                                seal.setImageResource(R.drawable.eat);
+                                sealsoundEater.play(sealEatID, 1f, 1f, 1, 0, 1f);
+                                new android.os.Handler().postDelayed(() -> {
+                                    seal.setImageResource(R.drawable.seal);
+                                }, 2000);
                                 feedSet();
                                 break;
                             default:
@@ -289,13 +319,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void feedSet() {
-        seal.setImageResource(R.drawable.eat);
-        new android.os.Handler().postDelayed(() -> {
-            sealsoundEater.play(sealEatID, 1f, 1f, 1, 0, 1f);
-            seal.setImageResource(R.drawable.seal);
-        }, 2000);
         //img setting
         int h = (int)(sealvar.getHunger() / 0.5);
+        Log.d("h", "H VALUE " + String.valueOf(h % 2));
         if (h % 2 == 0 && sealvar.getHunger() <= 8){
             //full
             switch (h){
@@ -304,21 +330,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     hunger2.setImageResource(R.drawable.emptyfish);
                     hunger3.setImageResource(R.drawable.emptyfish);
                     hunger4.setImageResource(R.drawable.emptyfish);
+                    break;
                 case 4:
                     hunger1.setImageResource(R.drawable.fish);
                     hunger2.setImageResource(R.drawable.fish);
                     hunger3.setImageResource(R.drawable.emptyfish);
                     hunger4.setImageResource(R.drawable.emptyfish);
+                    break;
                 case 6:
                     hunger1.setImageResource(R.drawable.fish);
                     hunger2.setImageResource(R.drawable.fish);
                     hunger3.setImageResource(R.drawable.fish);
                     hunger4.setImageResource(R.drawable.emptyfish);
+                    break;
                 case 8:
                     hunger1.setImageResource(R.drawable.fish);
                     hunger2.setImageResource(R.drawable.fish);
                     hunger3.setImageResource(R.drawable.fish);
                     hunger4.setImageResource(R.drawable.fish);
+                    break;
             }
         }
         else{
@@ -328,23 +358,35 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     hunger2.setImageResource(R.drawable.emptyfish);
                     hunger3.setImageResource(R.drawable.emptyfish);
                     hunger4.setImageResource(R.drawable.emptyfish);
+                    break;
                 case 3:
                     hunger1.setImageResource(R.drawable.fish);
                     hunger2.setImageResource(R.drawable.half);
                     hunger3.setImageResource(R.drawable.emptyfish);
                     hunger4.setImageResource(R.drawable.emptyfish);
+                    break;
                 case 5:
                     hunger1.setImageResource(R.drawable.fish);
                     hunger2.setImageResource(R.drawable.fish);
                     hunger3.setImageResource(R.drawable.half);
                     hunger4.setImageResource(R.drawable.emptyfish);
+                    break;
                 case 7:
                     hunger1.setImageResource(R.drawable.fish);
                     hunger2.setImageResource(R.drawable.fish);
                     hunger3.setImageResource(R.drawable.fish);
                     hunger4.setImageResource(R.drawable.half);
+                    break;
             }
         }
+        if (h == 0){
+            hunger1.setImageResource(R.drawable.emptyfish);
+            hunger2.setImageResource(R.drawable.emptyfish);
+            hunger3.setImageResource(R.drawable.emptyfish);
+            hunger4.setImageResource(R.drawable.emptyfish);
+        }
+        Log.d("hunger", "NEW HUNGER " + String.valueOf(sealvar.getHunger()));
+
     }
 
     private int FeedSeal() {
@@ -534,7 +576,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                             .setSmallIcon(R.drawable.notif_fish)
                             .build();
             notif.notify(SLEEP_NOTIFICATION_ID, notification);
-
             SetExtra();
             return true;
         }
@@ -546,6 +587,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         SharedPreferences.Editor e = prefsMain.edit();
         e.putFloat("hunger", (float) sealvar.getHunger());
         e.putInt("fishcount", sealvar.getFishcount());
+        e.putInt("base_steps", -1);
         e.apply();
     }
 
@@ -567,10 +609,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 });
     }
 
-    private BroadcastReceiver stepReceiver = new BroadcastReceiver() {
+    private BroadcastReceiver stepReceiverPause = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             int steps = intent.getIntExtra(StepService.STEP_COUNT, 0);
+            Log.d("STEP_DEBUG", "Broadcast sent: " + steps);
             step.setText(String.valueOf(steps));
         }
     };
@@ -607,12 +650,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     .into(backgroundgif);
         }
         if (stepSensor != null) {
+            Log.d("step", "STEP REREGISTERD");
             sensorManager.registerListener(this, stepSensor,
                     SensorManager.SENSOR_DELAY_FASTEST);
         }
+        IntentFilter filter = new IntentFilter(StepService.STEP_BROADCAST);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            registerReceiver(stepReceiver, new IntentFilter(StepService.STEP_BROADCAST),
-                    Context.RECEIVER_NOT_EXPORTED);
+            Log.d("step", "STEP REREGISTERD");
+            registerReceiver(stepReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
         }
     }
 
@@ -624,7 +669,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             player.pause();
         }
         sensorManager.unregisterListener(this);
-        unregisterReceiver(stepReceiver);
     }
 
     @Override
@@ -648,56 +692,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
-        //no need one
+        //no need
     }
 
-    //TODO: redo this
     @Override
     public void onSensorChanged(SensorEvent event) {
-        //base trigger
-        if (event.sensor.getType() != Sensor.TYPE_STEP_COUNTER) return;
-        totalSteps = event.values[0];
-        int dailySteps = (int) totalSteps;
-        if (dailySteps < 0) dailySteps = 0;
-        sealvar.setStepcount(dailySteps);
-        if (award.isFishAward()){
-            sealvar.setFishcount(sealvar.getFishcount() + 1);
-        }
-        SharedPreferences.Editor e = prefsMain.edit();
-        switch (day){
-            case 1: //Su
-                weekly.setSunday(sealvar.getStepcount());
-                e.putInt("sun", weekly.getSunday());
-                break;
-            case 2: //M
-                weekly.setMonday(sealvar.getStepcount());
-                e.putInt("mon", weekly.getMonday());
-                break;
-            case 3: //Tu
-                weekly.setTuesday(sealvar.getStepcount());
-                e.putInt("tue", weekly.getTuesday());
-                break;
-            case 4: //w
-                weekly.setWendesday(sealvar.getStepcount());
-                e.putInt("wen", weekly.getWendesday());
-                break;
-            case 5: //Th
-                weekly.setThursday(sealvar.getStepcount());
-                e.putInt("thu", weekly.getThursday());
-                break;
-            case 6: //F
-                weekly.setFriday(sealvar.getStepcount());
-                e.putInt("fri", sealvar.getStepcount());
-                break;
-            case 7: //Sa
-                weekly.setSaturday(sealvar.getStepcount());
-                e.putInt("sat", weekly.getSaturday());
-                break;
-            default:
-                Toast.makeText(this, getString(R.string.errorInLang), Toast.LENGTH_SHORT).show();
-                break;
-        }
-        step.setText(String.valueOf(dailySteps));
+        //no need
+    }
+
+
+
+    private int getCustomDayId() {
+        return 0;
     }
 
     private void init(){
@@ -742,6 +748,5 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
         notif = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        //read base data;
     }
 }

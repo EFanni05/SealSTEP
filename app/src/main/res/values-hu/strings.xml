@@ -14,14 +14,14 @@
     <string name="HUemoji">🇬🇧</string>
     <string name="errorInLang">Valami félre ment</string>
     <!--Gameplay-->
-    <string name="Feed">Etets meg!</string>
+    <string name="Feed">Etess meg!</string>
     <string name="haveFish">%d darab halad van</string>
     <string name="nofish">Nincs halad</string>
     <string name="sleeping">Alssssszok</string>
-    <string name="fullHunger">Televagyok</string>
+    <string name="fullHunger">Tele vagyok</string>
     <!--Notifications-->
     <string name="walkingStratMain">Gyerünk, sétáljunk! - 🦭</string>
-    <string name="walikingStratSmall">Fóka most figyelj</string>
+    <string name="walikingStratSmall">Fóka mostantól figyel</string>
     <string name="sleepSmall">🌙💤</string>
     <string name="sleepMain">Jó éjt - 🦭</string>
     <string name="goalHitSmall">Napi cél elérve!!</string>
@@ -29,9 +29,9 @@
     <string name="dailySmall">Napi emlékesztető</string>
     <string name="dailyMain">Wow!\nd% lépést tettél meg ma! - 🦭</string>
     <string name="weeklySmall">Heti emlékesztető</string>
-    <string name="weeklyBig">Ez heti TUNA report-od készen van! - 🦭</string>
-    <string name="offendedSmall">Fóka meg van sértődve</string>
-    <string name="offendedMain">Hallotál arról a dologról, hogy SÉTÁLÁS?! - 🦭</string>
+    <string name="weeklyBig">E heti TUNA report-od készen van! - 🦭</string>
+    <string name="offendedSmall">A Fóka meg van sértődve</string>
+    <string name="offendedMain">Hallotál már arról a dologról, hogy SÉTÁLÁS?! - 🦭</string>
     <!--Geo-->
     <string name="somewhere">Valahol </string>
     <string name="noData">N/A</string>
@@ -46,5 +46,5 @@
     <string name="NoStep">-</string>
     <string name="Weekly">Heti napló</string>
     <!--Alertbox-->
-    <string name="Title">Állíts be a napi célt!</string>
+    <string name="Title">Állítsd be a napi célt!</string>
 </resources>
