@@ -39,11 +39,13 @@ public class SealVariables {
 
     public int setHunger() {
         //setting hunger level
+        Log.d("DEBUG", "Before increase: " + hunger);
         if (hunger < 4.0 && fishcount > 0){
             //regular
             hunger += 0.5;
             fishcount--;
             Log.d("items", String.valueOf(fishcount));
+            Log.d("DEBUG", "After increase: " + hunger);
             return 1;
         } else if (hunger >= 4.0) {
             //full

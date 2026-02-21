@@ -27,11 +27,13 @@
     <string name="goalHitSmall">Daily goal REACHED!!</string>
     <string name="goalHitMain">Yay!\nYou hit your daily goal of d% steps! - 🦭</string>
     <string name="dailySmall">Daily recap</string>
-    <string name="dailyMain">Wow!\nYou walked d% steps! - 🦭</string>
+    <string name="dailyMain">Wow!\nYou walked %d steps! - 🦭</string>
     <string name="weeklySmall">Weekly recap</string>
     <string name="weeklyBig">You\'r weekly TUNA report is ready! - 🦭</string>
     <string name="offendedSmall">Seal is offended</string>
     <string name="offendedMain">Have you heard of a thing called WALKING!? - 🦭</string>
+    <string name="getfishSmall">Oooh, you got something</string>
+    <string name="getfishMain">You earned %d fish - 🦭</string>
     <!--Geo-->
     <string name="somewhere">Somewhere in </string>
     <string name="noData">N/A</string>
@@ -47,4 +49,9 @@
     <string name="Weekly">Weekly activity</string>
     <!--Alertbox-->
     <string name="Title">Set daily step goal!</string>
+    <string name="Notnumber">This isn\'t a number!</string>
+    <string name="IncorrectValue">Please set a higher number</string>
+    <string name="NotFilled">Please fill out field!</string>
+    <string name="set">You updateded your daily goal!</string>
+    <string name="Skin">Select a skin!</string>
 </resources>

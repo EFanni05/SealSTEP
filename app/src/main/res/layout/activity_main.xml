@@ -152,6 +152,28 @@
             android:src="@drawable/gear"
             android:layout_gravity="center"/>
     </FrameLayout>
+
+    <!-- skin button-->
+    <FrameLayout
+        android:id="@+id/skinButton"
+        android:clickable="true"
+        android:focusable="true"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="90dp">
+        <ImageView
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:src="@drawable/button2"
+            android:scaleType="fitEnd"/>
+        <ImageView
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:src="@drawable/seal1"
+            android:layout_gravity="center"/>
+    </FrameLayout>
 "
     <!-- feed button-->
     <FrameLayout

@@ -15,6 +15,7 @@ public class WeeklySteps {
     private int Sunday = 0;
     private int goal = 5000;
 
+
     //Tuna
     public int GetTuna(int steps){
         float f = (steps / goal) * 100;

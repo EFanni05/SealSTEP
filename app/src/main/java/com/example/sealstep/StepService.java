@@ -25,8 +25,11 @@ public class StepService extends Service implements SensorEventListener {
     private int awardstep = 0;
     private int fishcount;
     private int lastRewardSteps = 0;
+    private int lastHungerStep = 0;
+    private float hunger = 0;
     public static final String STEP_BROADCAST = "STEP_UPDATE";
     public static final String STEP_COUNT = "step_count";
+    public static final String FISH_NOTIF = "fish_Notif";
 
     @Override
     public void onCreate() {
@@ -126,6 +129,9 @@ public class StepService extends Service implements SensorEventListener {
         int time = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
         if (time >= 6 && time <= 22) {
             int savedRewardCount = prefs.getInt("rewardCount", 0);
+            int hungerCount = prefs.getInt("hungercount", 0);
+            hunger = prefs.getFloat("hunger", 0);
+            lastHungerStep = prefs.getInt("lastHunger", 0);
             lastRewardSteps = prefs.getInt("lastRewardSteps", 0);
             int currentDay = getCustomDayId();
             int savedDay = prefs.getInt("resetDay", -1);
@@ -157,6 +163,7 @@ public class StepService extends Service implements SensorEventListener {
             int dailySteps = rawSteps - baseSteps;
             if (dailySteps <= 0) dailySteps = 0;
             int rewardCount = dailySteps / 1500;
+            int hungercount = dailySteps / 3000;
             if (rewardCount > savedRewardCount) {
                 fishcount++;
                 lastRewardSteps += 1500;
@@ -164,7 +171,35 @@ public class StepService extends Service implements SensorEventListener {
                 prefs.edit().putInt("lastRewardSteps", lastRewardSteps);
                 prefs.edit().putInt("rewardCount", rewardCount);
                 prefs.edit().apply();
+                Notification fish = new NotificationCompat.Builder(this, "fish_channel")
+                        .setContentTitle(getString(R.string.getfishSmall))
+                        .setContentText(getString(R.string.getfishMain, 1))
+                        .setSmallIcon(R.drawable.notif_fish)
+                        .build();
+                NotificationManager manager;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    NotificationChannel channel =
+                            new NotificationChannel(FISH_NOTIF,
+                                    "Fish get",
+                                    NotificationManager.IMPORTANCE_LOW);
+
+                    manager =
+                            getSystemService(NotificationManager.class);
+                    manager.createNotificationChannel(channel);
+                    manager.notify(2000, fish);
+                }
             }
+            if (hungercount > hungerCount){
+                hungercount++;
+                lastHungerStep += 3000;
+                hunger -= 0.5;
+                prefs.edit().putFloat("hunger", hunger);
+                prefs.edit().putInt("lastHunger", lastHungerStep);
+                prefs.edit().putInt("hungercount", hungercount);
+                prefs.edit().apply();
+            }
+            prefs.edit().putInt("notif_step", dailySteps).apply();
+            prefs.edit().putInt("base_steps", baseSteps).apply();
             // Send to activity
             Log.d("STEP_DEBUG", "Raw: " + rawSteps);
             Log.d("STEP_DEBUG", "Base: " + baseSteps);

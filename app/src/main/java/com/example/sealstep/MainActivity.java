@@ -4,6 +4,7 @@ import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -12,7 +13,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.LabeledIntent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -24,7 +28,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -84,6 +90,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     ImageView hunger4;
     TextView step;
     FrameLayout settings;
+    FrameLayout skin;
     ImageView seal;
     FrameLayout feeding;
     FrameLayout fishbutton;
@@ -116,14 +123,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     Notification notification;
     private static final int SLEEP_NOTIFICATION_ID = 100;
     private static final int DAILY_RECAP_NOTIFICATION_ID = 101;
+    //skin
+    private int skinID = 0; //0 - seal, 1 - walrus
+    int selected;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         prefsMain  = getSharedPreferences("App_Pref", MODE_PRIVATE);
         applySavedLanguage();
+        skinID = prefsMain.getInt("skin", 0);
         sealvar.setSound(prefsMain.getBoolean("sound", true));
-        sealvar.setFishcount(prefsMain.getInt("fishcount", 1));
-        sealvar.setHunger((double) (prefsMain.getFloat("hunger", 4)));
+        sealvar.setFishcount(prefsMain.getInt("fishcount", 0));
+        float test = prefsMain.getFloat("hunger", 0);
+        Log.d("OG HUNGER", "HUNGERSTAT BEFOR SEALVAR" + String.valueOf(test));
+        sealvar.setHunger((double) (prefsMain.getFloat("hunger", 4.0f)));
         Log.d("feeding", "Huger stat" + String.valueOf(sealvar.getHunger()));
         base = prefsMain.getInt("base_steps", -1);
         super.onCreate(savedInstanceState);
@@ -135,6 +148,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             return insets;
         });
         init();
+        applySkin();
         //for img
         feedSet();
         Log.d("MAIN", "MainActivity created");
@@ -199,11 +213,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 public void onReceive(Context context, Intent intent) {
                     int steps = intent.getIntExtra(STEP_COUNT, 0);
                     Log.d("STEP_DEBUG", "Broadcast sent: " + steps);
+                    //sealvar.StepBaseHunger(); PROBLEM WAS YOU!!!
                     step.setText(String.valueOf(steps));
                 }
             };
             Log.d("STEP_SERVICE", "Total: " + step);
-            sealvar.StepBaseHunger();
         }
         //geo
         if (GeoPerm()){
@@ -237,6 +251,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     Toast.makeText(MainActivity.this, R.string.sleeping, Toast.LENGTH_SHORT).show();
                 }
                 else{
+                    Log.d("d", "SEALVAR: " + String.valueOf(sealvar.getHunger())+ "TEST: " + String.valueOf(test));
                     if (sealvar.getFishcount() == 0){
                         Toast.makeText(MainActivity.this, R.string.nofish, Toast.LENGTH_SHORT).show();
                     }
@@ -249,7 +264,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                                 break;
                             case 1:
                                 Log.d("feeding", "1");
-                                seal.setImageResource(R.drawable.eat);
+                                switch (skinID){
+                                    //setting skin
+                                    case 0:
+                                        seal.setImageResource(R.drawable.eat);
+                                        break;
+                                    case 1:
+                                        //TODO: walrus eating
+                                        seal.setImageResource(R.drawable.walrus);
+                                        break;
+                                }
                                 sealsoundEater.play(sealEatID, 1f, 1f, 1, 0, 1f);
                                 new android.os.Handler().postDelayed(() -> {
                                     seal.setImageResource(R.drawable.seal);
@@ -316,12 +340,78 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
             };
         }
+        //skin
+        skin.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                builder.setCancelable(true);
+                LayoutInflater in = getLayoutInflater();
+                View skinSelect = in.inflate(R.layout.avatar_select_custom, null);
+                builder.setView(skinSelect);
+                AlertDialog a = builder.create();
+                //for transparent background!!!
+                if (a.getWindow() != null){
+                    a.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                }
+                a.show();
+                a.setCanceledOnTouchOutside(true);
+                //variables
+                Button skinbtn = skinSelect.findViewById(R.id.skinSelect);
+                ImageView seal = skinSelect.findViewById(R.id.sealSkin);
+                ImageView walrus = skinSelect.findViewById(R.id.walrusSkin);
+                int initial = prefsMain.getInt("skin", 0);
+                switch (initial){
+                    case 0:
+                        //seal
+                        seal.setBackgroundColor(ContextCompat.getColor(
+                                seal.getContext(), R.color.waterblue));
+                        walrus.setBackgroundColor(Color.TRANSPARENT);
+                        break;
+                    case 1:
+                        //walrus
+                        seal.setBackgroundColor(Color.TRANSPARENT);
+                        walrus.setBackgroundColor(ContextCompat.getColor(
+                                walrus.getContext(), R.color.waterblue));
+                        break;
+                }
+                selected = initial;
+                //on click of pictures
+                seal.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        seal.setBackgroundColor(ContextCompat.getColor(
+                                seal.getContext(), R.color.waterblue));
+                        walrus.setBackgroundColor(Color.TRANSPARENT);
+                        selected = 0;
+                    }
+                });
+                walrus.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        seal.setBackgroundColor(Color.TRANSPARENT);
+                        walrus.setBackgroundColor(ContextCompat.getColor(
+                                walrus.getContext(), R.color.waterblue));
+                        selected = 1;
+                    }
+                });
+                skinbtn.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                       prefsMain.edit().putInt("skin", selected).apply();
+                       skinID = selected;
+                       applySkin();
+                       a.dismiss();
+                    }
+                });
+            }
+        });
     }
 
     private void feedSet() {
         //img setting
-        int h = (int)(sealvar.getHunger() / 0.5);
-        Log.d("h", "H VALUE " + String.valueOf(h % 2));
+        int h = (int)Math.round(sealvar.getHunger() * 2.0);
+        Log.d("h", "H VALUE " + String.valueOf(h ));
         if (h % 2 == 0 && sealvar.getHunger() <= 8){
             //full
             switch (h){
@@ -407,6 +497,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         AppCompatDelegate.setApplicationLocales(appLocale);
     }
 
+    private void applySkin(){
+        switch (skinID){
+            case 0:
+                //seal
+                seal.setImageResource(R.drawable.seal);
+                break;
+            case 1:
+                //walrus
+                seal.setImageResource(R.drawable.walrus);
+                break;
+        }
+        Log.d("sk", "SKIN CHANGED");
+    }
+
     private boolean GeoPerm() {
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION)
@@ -486,6 +590,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void ChangeBG() {
+        if (isFinishing() || isDestroyed()) {
+            return;
+        }
         if (isDay == 1){ //day
             if (weatherCode == 0) {
                 background.setImageResource(R.drawable.sunny);
@@ -567,15 +674,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private boolean SleepCheck() {
-        if (time >= 20 || time < 6){
-            seal.setImageResource(R.drawable.sleep);
+        if (time >= 22 || time < 6){
+            switch (skinID){
+                case 0:
+                    seal.setImageResource(R.drawable.sleep);
+                    break;
+                case 1:
+                    //TODO: walrus sleeping
+                    seal.setImageResource(R.drawable.walrus);
+                    break;
+            }
             notification =
                     new NotificationCompat.Builder(this, "main_channel")
                             .setContentTitle(getString(R.string.sleepSmall))
                             .setContentText(getString(R.string.sleepMain))
                             .setSmallIcon(R.drawable.notif_fish)
                             .build();
+            Notification recap = new NotificationCompat.Builder(this, "main_channel")
+                    .setContentTitle(getString(R.string.dailySmall))
+                    .setContentText(getString(R.string.dailyMain, sealvar.getStepcount()))
+                    .setSmallIcon(R.drawable.notif_calendar)
+                    .build();
             notif.notify(SLEEP_NOTIFICATION_ID, notification);
+            notif.notify(DAILY_RECAP_NOTIFICATION_ID, recap);
             SetExtra();
             return true;
         }
@@ -700,12 +821,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //no need
     }
 
-
-
-    private int getCustomDayId() {
-        return 0;
-    }
-
     private void init(){
         background = findViewById(R.id.background);
         backgroundgif = findViewById(R.id.backgroundgif);
@@ -732,6 +847,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         seal = findViewById(R.id.seal);
         feeding = findViewById(R.id.feedingbutton);
         fishbutton = findViewById(R.id.fishbutton);
+        skin = findViewById(R.id.skinButton);
         statbutton = findViewById(R.id.statbutton);
         if(time >= 22 || time < 6){
             player = MediaPlayer.create(this, R.raw.stalecupcake);
@@ -748,5 +864,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
         notif = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if (!prefsMain.getBoolean("walrus", false)){
+            skin.setVisibility(View.INVISIBLE);
+        }
+        else{
+            skin.setVisibility(View.VISIBLE);
+        }
     }
 }

@@ -32,6 +32,8 @@
     <string name="weeklyBig">E heti TUNA report-od készen van! - 🦭</string>
     <string name="offendedSmall">A Fóka meg van sértődve</string>
     <string name="offendedMain">Hallotál már arról a dologról, hogy SÉTÁLÁS?! - 🦭</string>
+    <string name="getfishSmall">Oooh, valamit kaptál</string>
+    <string name="getfishMain">d% halat szereztél - 🦭</string>
     <!--Geo-->
     <string name="somewhere">Valahol </string>
     <string name="noData">N/A</string>
@@ -47,4 +49,9 @@
     <string name="Weekly">Heti napló</string>
     <!--Alertbox-->
     <string name="Title">Állítsd be a napi célt!</string>
+    <string name="Notnumber">Ez nem egy szám!</string>
+    <string name="set">Sikeresen beállítotad a napi célodad!</string>
+    <string name="IncorrectValue">Kérem írjon be magasabb számot!</string>
+    <string name="NotFilled">Kérem töltse ki a mezőt!</string>
+    <string name="Skin">Válasz karaketert!</string>
 </resources>

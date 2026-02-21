@@ -2,6 +2,7 @@ package com.example.sealstep;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.icu.util.Calendar;
@@ -46,6 +47,28 @@ public class LoadingActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        SharedPreferences prefsMain = getSharedPreferences("App_Pref", MODE_PRIVATE);
+        boolean firstboot = prefsMain.getBoolean("first", true);
+        if (firstboot) {
+            prefsMain.edit().putFloat("hunger", 4.0F).apply();
+            prefsMain.edit().putInt("fishcount", 1).apply();
+            prefsMain.edit().putInt("base_steps", -1).apply();
+            prefsMain.edit().putBoolean("first", false).apply();
+            prefsMain.edit().putInt("goal", 5000);
+            //special skin
+            //TODO: set it to false
+            prefsMain.edit().putBoolean("walrus", true).apply();
+            prefsMain.edit().putInt("skin", 0).apply();
+            //days base
+            prefsMain.edit().putInt("mon", -1).apply();
+            prefsMain.edit().putInt("tue", -1).apply();
+            prefsMain.edit().putInt("wen", -1).apply();
+            prefsMain.edit().putInt("thu", -1).apply();
+            prefsMain.edit().putInt("fri", -1).apply();
+            prefsMain.edit().putInt("sat", -1).apply();
+            prefsMain.edit().putInt("sun", -1).apply();
+            Log.d("f", "INITIAL SETUP SHAREDPREFS");
+        }
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_loading);

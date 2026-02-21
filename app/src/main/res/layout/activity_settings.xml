@@ -31,6 +31,7 @@
             android:layout_marginStart="10dp"/>
     </FrameLayout>
 
+
     <!-- info text-->
     <LinearLayout
         android:layout_width="wrap_content"
@@ -125,6 +126,7 @@
                 android:textSize="30sp"/>
        </LinearLayout>
     </LinearLayout>
+
     <!-- controll buttons -->
     <FrameLayout
         android:id="@+id/soundbutton"
@@ -134,9 +136,7 @@
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginBottom="110dp"
-        android:layout_marginStart="10dp"
-        >
+        android:layout_marginBottom="110dp">
         <ImageView
             android:layout_width="80dp"
             android:layout_height="80dp"
