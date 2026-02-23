@@ -25,9 +25,9 @@
     <string name="sleepSmall">🌙💤</string>
     <string name="sleepMain">Jó éjt - 🦭</string>
     <string name="goalHitSmall">Napi cél elérve!!</string>
-    <string name="goalHitMain">Yay!\nElérted a napi d% lépésedet! - 🦭</string>
+    <string name="goalHitMain">Yay!\nElérted a napi %d lépésedet! - 🦭</string>
     <string name="dailySmall">Napi emlékesztető</string>
-    <string name="dailyMain">Wow!\nd% lépést tettél meg ma! - 🦭</string>
+    <string name="dailyMain">Wow!\n%d lépést tettél meg ma! - 🦭</string>
     <string name="weeklySmall">Heti emlékesztető</string>
     <string name="weeklyBig">E heti TUNA report-od készen van! - 🦭</string>
     <string name="offendedSmall">A Fóka meg van sértődve</string>

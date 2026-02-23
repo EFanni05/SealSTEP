@@ -72,7 +72,6 @@ public class StatActivity extends AppCompatActivity {
         init();
         getWeek();
         setWeek();
-        //TODO: weekly notif
         if (sealvar.isSound()){
             player.start();
         }

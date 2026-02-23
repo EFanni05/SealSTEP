@@ -25,7 +25,7 @@
     <string name="sleepSmall">🌙💤</string>
     <string name="sleepMain">Good night! - 🦭</string>
     <string name="goalHitSmall">Daily goal REACHED!!</string>
-    <string name="goalHitMain">Yay!\nYou hit your daily goal of d% steps! - 🦭</string>
+    <string name="goalHitMain">Yay!\nYou hit your daily goal of %d steps! - 🦭</string>
     <string name="dailySmall">Daily recap</string>
     <string name="dailyMain">Wow!\nYou walked %d steps! - 🦭</string>
     <string name="weeklySmall">Weekly recap</string>

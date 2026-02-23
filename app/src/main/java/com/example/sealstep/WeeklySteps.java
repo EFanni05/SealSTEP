@@ -24,13 +24,13 @@ public class WeeklySteps {
 
     //reset
     public void ResetWeek(){
-        Monday = 0;
-        Tuesday = 0;
-        Wendesday = 0;
-        Thursday = 0;
-        Friday = 0;
-        Saturday = 0;
-        Sunday = 0;
+        Monday = -1;
+        Tuesday = -1;
+        Wendesday = -1;
+        Thursday = -1;
+        Friday = -1;
+        Saturday = -1;
+        Sunday = -1;
     }
 
     //monday

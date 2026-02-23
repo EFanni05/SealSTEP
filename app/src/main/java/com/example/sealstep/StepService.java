@@ -27,6 +27,8 @@ public class StepService extends Service implements SensorEventListener {
     private int lastRewardSteps = 0;
     private int lastHungerStep = 0;
     private float hunger = 0;
+    private int offendedDays = 0;
+    private int goal = 0;
     public static final String STEP_BROADCAST = "STEP_UPDATE";
     public static final String STEP_COUNT = "step_count";
     public static final String FISH_NOTIF = "fish_Notif";
@@ -86,16 +88,33 @@ public class StepService extends Service implements SensorEventListener {
         return cal.get(Calendar.YEAR) * 1000 + cal.get(Calendar.DAY_OF_YEAR);
     }
 
+    private void weeklyReset(){
+        int day = Calendar.getInstance().get(Calendar.DAY_OF_WEEK);
+        boolean reset = prefs.getBoolean("reset", false);
+        if(day == 3){
+            if (reset){
+                SaveDay(1, -1);
+                for (int i = 3; i < 8; i++) {
+                    SaveDay(i, -1);
+                }
+                reset = false;
+            }
+        }
+        prefs.edit().putBoolean("reset", reset).apply();
+    }
+
     private void SaveDay(int day, int steps) {
         SharedPreferences.Editor e = prefs.edit();
         switch (day){
             case 1: //Su
                 weekly.setSunday(steps);
                 e.putInt("sun", weekly.getSunday());
+                SendTunaRatingNotif();
                 break;
             case 2: //M
                 weekly.setMonday(steps);
                 e.putInt("mon", weekly.getMonday());
+                e.putBoolean("reset", true);
                 break;
             case 3: //Tu
                 weekly.setTuesday(steps);
@@ -123,11 +142,31 @@ public class StepService extends Service implements SensorEventListener {
         }
         e.apply();
     }
+
+    private void SendTunaRatingNotif() {
+        Notification weekly = new NotificationCompat.Builder(this, "weekly_channel")
+                .setContentTitle(getString(R.string.weeklySmall))
+                .setContentText(getString(R.string.weeklyBig))
+                .setSmallIcon(R.drawable.notif_calendar)
+                .build();
+        NotificationManager manager;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel =
+                    new NotificationChannel("TUNA_NOTIF",
+                            "Tuna get",
+                            NotificationManager.IMPORTANCE_DEFAULT);
+            manager = getSystemService(NotificationManager.class);
+            manager.createNotificationChannel(channel);
+            manager.notify(2002, weekly);
+        }
+    }
+
     @Override
     public void onSensorChanged(SensorEvent event) {
         if (event.sensor.getType() != Sensor.TYPE_STEP_COUNTER) return;
         int time = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
         if (time >= 6 && time <= 22) {
+            goal = prefs.getInt("goal", 5000);
             int savedRewardCount = prefs.getInt("rewardCount", 0);
             int hungerCount = prefs.getInt("hungercount", 0);
             hunger = prefs.getFloat("hunger", 0);
@@ -149,6 +188,13 @@ public class StepService extends Service implements SensorEventListener {
                 prefs.edit().putInt("lastRewardSteps", lastRewardSteps).apply();
                 prefs.edit().putInt("rewardCount", 0).apply();
                 baseSteps = rawSteps;
+                weeklyReset();
+                if ((rawSteps - baseSteps) == 0){
+                    offendedDays++;
+                    if (offendedDays > 3){
+                        OffendedNotif();
+                    }
+                }
             }
             if (baseSteps == -1) {
                 Log.d("a", "INITIAL SET");
@@ -164,7 +210,9 @@ public class StepService extends Service implements SensorEventListener {
             if (dailySteps <= 0) dailySteps = 0;
             int rewardCount = dailySteps / 1500;
             int hungercount = dailySteps / 3000;
+            //getfish
             if (rewardCount > savedRewardCount) {
+                Log.d("fish", "FISH SENT");
                 fishcount++;
                 lastRewardSteps += 1500;
                 prefs.edit().putInt("fishcount", fishcount);
@@ -189,7 +237,9 @@ public class StepService extends Service implements SensorEventListener {
                     manager.notify(2000, fish);
                 }
             }
+            //minus hunger
             if (hungercount > hungerCount){
+                Log.d("h", "HUNGER--");
                 hungercount++;
                 lastHungerStep += 3000;
                 hunger -= 0.5;
@@ -198,7 +248,11 @@ public class StepService extends Service implements SensorEventListener {
                 prefs.edit().putInt("hungercount", hungercount);
                 prefs.edit().apply();
             }
-            prefs.edit().putInt("notif_step", dailySteps).apply();
+            //send goal hit
+            if (goal == dailySteps){
+                Log.d("goal", "GOAL HIT");
+                SendGoal(dailySteps);
+            }
             prefs.edit().putInt("base_steps", baseSteps).apply();
             // Send to activity
             Log.d("STEP_DEBUG", "Raw: " + rawSteps);
@@ -213,6 +267,43 @@ public class StepService extends Service implements SensorEventListener {
         }
     }
 
+    private void SendGoal(int steps) {
+        Notification goalHit = new NotificationCompat.Builder(this, "goal_channel")
+                .setContentTitle(getString(R.string.goalHitSmall))
+                .setContentText(getString(R.string.goalHitMain, steps))
+                .setSmallIcon(R.drawable.notif_ribbon)
+                .build();
+        NotificationManager manager;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel =
+                    new NotificationChannel("GOAL_NOTIF",
+                            "Goal hit",
+                            NotificationManager.IMPORTANCE_DEFAULT);
+            manager = getSystemService(NotificationManager.class);
+            manager.createNotificationChannel(channel);
+            manager.notify(2005, goalHit);
+        }
+    }
+
+    private void OffendedNotif() {
+        Notification offended = new NotificationCompat.Builder(this, "steps_channel")
+                .setContentTitle(getString(R.string.offendedSmall))
+                .setContentText(getString(R.string.offendedMain))
+                .setSmallIcon(R.drawable.notif_fish)
+                .build();
+        NotificationManager manager;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel =
+                    new NotificationChannel("OFFENDED_NOTIF",
+                            "offended",
+                            NotificationManager.IMPORTANCE_DEFAULT);
+            manager = getSystemService(NotificationManager.class);
+            manager.createNotificationChannel(channel);
+            manager.notify(2003, offended);
+        }
+        offendedDays = 0;
+    }
+
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 
@@ -223,7 +314,6 @@ public class StepService extends Service implements SensorEventListener {
 
     private void startForegroundService() {
         String channelId = "step_channel";
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel =
                     new NotificationChannel(channelId,

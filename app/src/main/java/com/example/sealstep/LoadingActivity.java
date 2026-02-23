@@ -51,13 +51,13 @@ public class LoadingActivity extends AppCompatActivity {
         boolean firstboot = prefsMain.getBoolean("first", true);
         if (firstboot) {
             prefsMain.edit().putFloat("hunger", 4.0F).apply();
-            prefsMain.edit().putInt("fishcount", 1).apply();
+            prefsMain.edit().putInt("fishcount", 0).apply();
             prefsMain.edit().putInt("base_steps", -1).apply();
             prefsMain.edit().putBoolean("first", false).apply();
-            prefsMain.edit().putInt("goal", 5000);
+            prefsMain.edit().putInt("goal", 5000).apply();
+            prefsMain.edit().putBoolean("reset", false).apply();
             //special skin
-            //TODO: set it to false
-            prefsMain.edit().putBoolean("walrus", true).apply();
+            prefsMain.edit().putBoolean("walrus", false).apply();
             prefsMain.edit().putInt("skin", 0).apply();
             //days base
             prefsMain.edit().putInt("mon", -1).apply();

@@ -294,6 +294,7 @@ public class SettingsActivity extends AppCompatActivity {
                 String street = address.getThoroughfare();
                 String country = address.getCountryName();
                 //no street name
+                //TODO: fix this
                 if (street.isEmpty()){
                     addresstext = city + ", " + country;
                 } else if (street.isEmpty() && city.isEmpty()) {
